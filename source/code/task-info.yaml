@@ -1,0 +1,100 @@
+type: edu
+files:
+  - name: src/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/mnist_augmented.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/mnist_simple.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/movie_recommendation.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/nerf.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/wikicorpora.py
+    visible: true
+    learner_created: false
+  - name: src/models/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/models/convolutional/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/models/convolutional/sequential.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/adversarial.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/autoencoder.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/deep_batchnorm_net.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/fully_connected.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/nerf.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/simple_fcnn.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/word2vec.py
+    visible: true
+    learner_created: false
+  - name: src/optimizers.py
+    visible: true
+    learner_created: false
+  - name: src/train_loop.py
+    visible: true
+    learner_created: false
+  - name: src/utils/__init__.py
+    visible: true
+    learner_created: false
+  - name: src/utils/collate.py
+    visible: true
+    learner_created: false
+  - name: src/utils/detach_copy.py
+    visible: true
+    learner_created: false
+  - name: src/utils/deterministic_init.py
+    visible: true
+    learner_created: false
+  - name: src/utils/mlflow.py
+    visible: true
+    learner_created: false
+  - name: src/utils/model_visualisation.py
+    visible: true
+    learner_created: false
+  - name: src/utils/model_visualization.py
+    visible: true
+    learner_created: false
+  - name: src/utils/safecatch.py
+    visible: true
+    learner_created: false
+  - name: src/utils/seed.py
+    visible: true
+    learner_created: false
+  - name: src/utils/torch_to_numpy.py
+    visible: true
+    learner_created: false
+  - name: __init__.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/recommendation.py
+    visible: true
+    learner_created: false
+status: Unchecked
+record: -1

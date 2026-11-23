@@ -1,0 +1,28 @@
+type: edu
+files:
+  - name: .task.ipynb
+    visible: false
+    is_binary: true
+    learner_created: false
+  - name: task.ipynb
+    visible: true
+    is_binary: true
+    learner_created: false
+  - name: tests/test_task.py
+    visible: false
+    is_binary: true
+    learner_created: false
+  - name: xinputs.npz
+    visible: true
+    is_binary: true
+    learner_created: false
+  - name: yanswer.npz
+    visible: true
+    is_binary: true
+    learner_created: false
+  - name: .boston_housing.npz
+    visible: false
+    is_binary: true
+    learner_created: false
+status: Unchecked
+record: -1

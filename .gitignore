@@ -1,0 +1,19 @@
+# Environment / IDE
+.venv/
+.idea/
+.DS_Store
+
+# Python caches
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# marimo / experiment artifacts
+__marimo__/
+mlruns/
+mlartifacts/
+lightning_logs/
+
+# Downloaded datasets (MNIST, MovieLens, ...)
+data/
+datasets_cache/

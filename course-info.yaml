@@ -1,0 +1,74 @@
+type: marketplace
+title: Mathematics in Deep Learning
+language: English
+summary: |
+  Calculus, linear algebra and probability for deep learning, then
+  training networks: linear regression, backpropagation and a first
+  network; fully connected networks for classification, autoencoders,
+  adversarial generation, word embeddings, movie recommendation and a
+  tiny NeRF; optimizers from gradient descent to Adam, Lion and Muon; and
+  deep networks with batch normalization and residual blocks.
+
+  This course contains practice tasks taught in the JetBrains'
+  Computer Science and Artificial Intelligence (CSAI) program at Neapolis
+  University Pafos (NUP), Cyprus.
+programming_language: Python
+programming_language_version: 3.12
+environment: unittest
+content:
+  - Calculus
+  - Linear Algebra
+  - Probability
+  - Training a Network
+  - Fully Connected NNs
+  - Optimizers
+  - Deep Fully Connected NNs
+  - source
+additional_files:
+  - name: requirements.txt
+  - name: utils/hidden.py
+  - name: utils/__init__.py
+  - name: utils/cards.py
+  - name: utils/checker.py
+  - name: utils/nb_executor.py
+  - name: utils/run_checks.py
+  - name: utils/prepublish.py
+  - name: source/__init__.py
+  - name: source/.code/__init__.py
+  - name: source/.code/src/__init__.py
+  - name: source/.code/src/datasets/__init__.py
+  - name: source/.code/src/datasets/mnist_augmented.py
+  - name: source/.code/src/datasets/mnist_simple.py
+  - name: source/.code/src/datasets/movie_recommendation.py
+  - name: source/.code/src/datasets/nerf.py
+  - name: source/.code/src/datasets/wikicorpora.py
+  - name: source/.code/src/models/__init__.py
+  - name: source/.code/src/models/convolutional/__init__.py
+  - name: source/.code/src/models/convolutional/sequential.py
+  - name: source/.code/src/models/feedforward/__init__.py
+  - name: source/.code/src/models/feedforward/adversarial.py
+  - name: source/.code/src/models/feedforward/autoencoder.py
+  - name: source/.code/src/models/feedforward/deep_batchnorm_net.py
+  - name: source/.code/src/models/feedforward/fully_connected.py
+  - name: source/.code/src/models/feedforward/nerf.py
+  - name: source/.code/src/models/feedforward/recommendation.py
+  - name: source/.code/src/models/feedforward/simple_fcnn.py
+  - name: source/.code/src/models/feedforward/word2vec.py
+  - name: source/.code/src/optimizers.py
+  - name: source/.code/src/train_loop.py
+  - name: source/.code/src/utils/__init__.py
+  - name: source/.code/src/utils/collate.py
+  - name: source/.code/src/utils/detach_copy.py
+  - name: source/.code/src/utils/deterministic_init.py
+  - name: source/.code/src/utils/mlflow.py
+  - name: source/.code/src/utils/model_visualisation.py
+  - name: source/.code/src/utils/model_visualization.py
+  - name: source/.code/src/utils/safecatch.py
+  - name: source/.code/src/utils/seed.py
+  - name: source/.code/src/utils/torch_to_numpy.py
+  - name: uv.lock
+mode: Study
+vendor:
+  name: JetBrains s.r.o.
+  url: https://plugins.jetbrains.com/vendor/JetBrains
+yaml_version: 6
