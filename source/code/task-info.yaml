@@ -96,5 +96,32 @@ files:
   - name: src/models/feedforward/recommendation.py
     visible: true
     learner_created: false
+  - name: src/models/feedforward/dropout.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/variational.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/regression.py
+    visible: true
+    learner_created: false
+  - name: src/models/feedforward/initialization.py
+    visible: true
+    learner_created: false
+  - name: src/models/convolutional/detection.py
+    visible: true
+    learner_created: false
+  - name: src/models/convolutional/segmentation.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/house_prices.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/mnist_canvas.py
+    visible: true
+    learner_created: false
+  - name: src/datasets/wikitext.py
+    visible: true
+    learner_created: false
 status: Unchecked
 record: -1

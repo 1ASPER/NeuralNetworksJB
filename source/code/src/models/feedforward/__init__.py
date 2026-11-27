@@ -6,3 +6,7 @@ from . import word2vec
 from . import adversarial
 from . import nerf
 from . import recommendation
+from . import initialization
+from . import dropout
+from . import regression
+from . import variational

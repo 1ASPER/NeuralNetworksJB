@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.25.1"
+__generated_with = "0.23.16"
 app = marimo.App(width="full")
 
 
@@ -26,18 +26,27 @@ def _():
 
     FIXED_CARDS, MATCHING_CARDS = utils.cards.load_matching_cards()
     get_order, set_order = utils.cards.init_ordering_state(mo, MATCHING_CARDS)
-    return FIXED_CARDS, MATCHING_CARDS, get_order, mo, set_order, utils
+    return (
+        FIXED_CARDS,
+        MATCHING_CARDS,
+        get_order,
+        mo,
+        set_order,
+        utils,
+    )
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    # Match Functions with their Derivatives
+    mo.md(
+        r"""
+        # Match Functions with their Derivatives
 
-    And memorize this table.
+        And memorize this table.
 
-    This table has to be memorized. By heart. No excuses.
-    """)
+        This table has to be memorized. By heart. No excuses.
+        """
+    )
     return
 
 
@@ -57,7 +66,7 @@ def _(FIXED_CARDS, MATCHING_CARDS, get_order, mo, set_order, utils):
 
 
 @app.cell(hide_code=True)
-def _(down_buttons, up_buttons, widget):
+def _(down_buttons, up_buttons, utils, widget):
     # Referencing both arrays in another cell keeps their callbacks registered.
     _controls = down_buttons, up_buttons
 

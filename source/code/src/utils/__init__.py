@@ -7,3 +7,4 @@ from .safecatch import safecatch
 from . import mlflow
 from . import model_visualization
 from . import model_visualisation
+from . import device

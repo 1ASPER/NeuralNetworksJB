@@ -92,48 +92,41 @@ def _():
     else:
         SAVED_STATE = {}
     return (
-        DX,
-        FUNCTIONS,
-        FUNCTION_LABEL_BY_KEY,
-        LABEL_BY_KEY,
-        OPTIONS,
-        SAVED_STATE,
-        TABLE_POINTS_BY_KEY,
-        json,
-        mo,
-        np,
-        utils,
+        DX, FUNCTIONS, FUNCTION_LABEL_BY_KEY, LABEL_BY_KEY, OPTIONS, SAVED_STATE,
+        TABLE_POINTS_BY_KEY, json, mo, np, utils,
     )
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    # Derivatives and Finite Differences
+    mo.md(
+        r"""
+        # Derivatives and Finite Differences
 
-    Eight functions, each in its own tab, accessible in any order at any time.
-    For each one:
+        Eight functions, each in its own tab, accessible in any order at any time.
+        For each one:
 
-    1. Start at `x = target`, where the slider begins (its own position isn't
-       graded).
-    2. Fill in `dy/dx` at every point in the table under the plot — all 5
-       points are graded independently.
-    3. Move the slider around too, if you want to see more points than the
-       table's 5 — each one you visit gets plotted on the main plot as well.
-    4. Select the function that fits the plot as close as possible (and is
-       probably the derivative).
+        1. Start at `x = target`, where the slider begins (its own position isn't
+           graded).
+        2. Fill in `dy/dx` at every point in the table under the plot — all 5
+           points are graded independently.
+        3. Move the slider around too, if you want to see more points than the
+           table's 5 — each one you visit gets plotted on the main plot as well.
+        4. Select the function that fits the plot as close as possible (and is
+           probably the derivative).
 
-    There's no live right/wrong feedback — only the actual submission is
-    graded. The slider's own position is never checked — what's graded is
-    whether `dy/dx` was ever entered correctly at each of the table's 5
-    points, regardless of where the slider ends up afterward.
+        There's no live right/wrong feedback — only the actual submission is
+        graded. The slider's own position is never checked — what's graded is
+        whether `dy/dx` was ever entered correctly at each of the table's 5
+        points, regardless of where the slider ends up afterward.
 
-    Each tab is labeled with its internal key (e.g. `square`) so a submission
-    report entry like `square_deriv_value_0` (the table's leftmost point)
-    through `square_deriv_value_4` (rightmost) can be matched back to the
-    right tab and column. The report is pass/fail only — it doesn't reveal
-    the correct values.
-    """)
+        Each tab is labeled with its internal key (e.g. `square`) so a submission
+        report entry like `square_deriv_value_0` (the table's leftmost point)
+        through `square_deriv_value_4` (rightmost) can be matched back to the
+        right tab and column. The report is pass/fail only — it doesn't reveal
+        the correct values.
+        """
+    )
     return
 
 
@@ -338,7 +331,10 @@ def _(DX, mo, np):
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "square")
     _saved = SAVED_STATE.get("square", {})
     _saved_table = _saved.get("table")
@@ -387,13 +383,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        square_candidate,
-        square_slider,
-        square_table_0,
-        square_table_1,
-        square_table_2,
-        square_table_3,
-        square_table_4,
+        square_candidate, square_slider,
+        square_table_0, square_table_1, square_table_2, square_table_3, square_table_4,
     )
 
 
@@ -495,7 +486,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "cube")
     _saved = SAVED_STATE.get("cube", {})
     _saved_table = _saved.get("table")
@@ -544,13 +538,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        cube_candidate,
-        cube_slider,
-        cube_table_0,
-        cube_table_1,
-        cube_table_2,
-        cube_table_3,
-        cube_table_4,
+        cube_candidate, cube_slider,
+        cube_table_0, cube_table_1, cube_table_2, cube_table_3, cube_table_4,
     )
 
 
@@ -566,6 +555,9 @@ def _(
     FUNCTIONS,
     TABLE_POINTS_BY_KEY,
     build_function_plot,
+    get_cube_trace,
+    mo,
+    set_cube_trace,
     cube_candidate,
     cube_slider,
     cube_table_0,
@@ -573,9 +565,6 @@ def _(
     cube_table_2,
     cube_table_3,
     cube_table_4,
-    get_cube_trace,
-    mo,
-    set_cube_trace,
 ):
     _entry = next(e for e in FUNCTIONS if e[0] == "cube")
     cube_x = float(cube_slider.value)
@@ -652,7 +641,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "sqrt")
     _saved = SAVED_STATE.get("sqrt", {})
     _saved_table = _saved.get("table")
@@ -701,13 +693,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        sqrt_candidate,
-        sqrt_slider,
-        sqrt_table_0,
-        sqrt_table_1,
-        sqrt_table_2,
-        sqrt_table_3,
-        sqrt_table_4,
+        sqrt_candidate, sqrt_slider,
+        sqrt_table_0, sqrt_table_1, sqrt_table_2, sqrt_table_3, sqrt_table_4,
     )
 
 
@@ -809,7 +796,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "sin")
     _saved = SAVED_STATE.get("sin", {})
     _saved_table = _saved.get("table")
@@ -858,13 +848,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        sin_candidate,
-        sin_slider,
-        sin_table_0,
-        sin_table_1,
-        sin_table_2,
-        sin_table_3,
-        sin_table_4,
+        sin_candidate, sin_slider,
+        sin_table_0, sin_table_1, sin_table_2, sin_table_3, sin_table_4,
     )
 
 
@@ -966,7 +951,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "tan")
     _saved = SAVED_STATE.get("tan", {})
     _saved_table = _saved.get("table")
@@ -1015,13 +1003,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        tan_candidate,
-        tan_slider,
-        tan_table_0,
-        tan_table_1,
-        tan_table_2,
-        tan_table_3,
-        tan_table_4,
+        tan_candidate, tan_slider,
+        tan_table_0, tan_table_1, tan_table_2, tan_table_3, tan_table_4,
     )
 
 
@@ -1123,7 +1106,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "exp")
     _saved = SAVED_STATE.get("exp", {})
     _saved_table = _saved.get("table")
@@ -1172,13 +1158,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        exp_candidate,
-        exp_slider,
-        exp_table_0,
-        exp_table_1,
-        exp_table_2,
-        exp_table_3,
-        exp_table_4,
+        exp_candidate, exp_slider,
+        exp_table_0, exp_table_1, exp_table_2, exp_table_3, exp_table_4,
     )
 
 
@@ -1194,6 +1175,9 @@ def _(
     FUNCTIONS,
     TABLE_POINTS_BY_KEY,
     build_function_plot,
+    get_exp_trace,
+    mo,
+    set_exp_trace,
     exp_candidate,
     exp_slider,
     exp_table_0,
@@ -1201,9 +1185,6 @@ def _(
     exp_table_2,
     exp_table_3,
     exp_table_4,
-    get_exp_trace,
-    mo,
-    set_exp_trace,
 ):
     _entry = next(e for e in FUNCTIONS if e[0] == "exp")
     exp_x = float(exp_slider.value)
@@ -1280,7 +1261,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "log")
     _saved = SAVED_STATE.get("log", {})
     _saved_table = _saved.get("table")
@@ -1329,13 +1313,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        log_candidate,
-        log_slider,
-        log_table_0,
-        log_table_1,
-        log_table_2,
-        log_table_3,
-        log_table_4,
+        log_candidate, log_slider,
+        log_table_0, log_table_1, log_table_2, log_table_3, log_table_4,
     )
 
 
@@ -1352,6 +1331,8 @@ def _(
     TABLE_POINTS_BY_KEY,
     build_function_plot,
     get_log_trace,
+    mo,
+    set_log_trace,
     log_candidate,
     log_slider,
     log_table_0,
@@ -1359,8 +1340,6 @@ def _(
     log_table_2,
     log_table_3,
     log_table_4,
-    mo,
-    set_log_trace,
 ):
     _entry = next(e for e in FUNCTIONS if e[0] == "log")
     log_x = float(log_slider.value)
@@ -1437,7 +1416,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
+def _(
+    FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo,
+    slider_start_value,
+):
     _entry = next(e for e in FUNCTIONS if e[0] == "arcsin")
     _saved = SAVED_STATE.get("arcsin", {})
     _saved_table = _saved.get("table")
@@ -1486,13 +1468,8 @@ def _(FUNCTIONS, LABEL_BY_KEY, OPTIONS, SAVED_STATE, mo, slider_start_value):
         label="",
     )
     return (
-        arcsin_candidate,
-        arcsin_slider,
-        arcsin_table_0,
-        arcsin_table_1,
-        arcsin_table_2,
-        arcsin_table_3,
-        arcsin_table_4,
+        arcsin_candidate, arcsin_slider,
+        arcsin_table_0, arcsin_table_1, arcsin_table_2, arcsin_table_3, arcsin_table_4,
     )
 
 
@@ -1507,6 +1484,10 @@ def _(
     DX,
     FUNCTIONS,
     TABLE_POINTS_BY_KEY,
+    build_function_plot,
+    get_arcsin_trace,
+    mo,
+    set_arcsin_trace,
     arcsin_candidate,
     arcsin_slider,
     arcsin_table_0,
@@ -1514,10 +1495,6 @@ def _(
     arcsin_table_2,
     arcsin_table_3,
     arcsin_table_4,
-    build_function_plot,
-    get_arcsin_trace,
-    mo,
-    set_arcsin_trace,
 ):
     _entry = next(e for e in FUNCTIONS if e[0] == "arcsin")
     arcsin_x = float(arcsin_slider.value)
@@ -1596,15 +1573,15 @@ def _(
 @app.cell(hide_code=True)
 def _(
     FUNCTION_LABEL_BY_KEY,
-    arcsin_tab,
+    mo,
+    square_tab,
     cube_tab,
+    sqrt_tab,
+    sin_tab,
+    tan_tab,
     exp_tab,
     log_tab,
-    mo,
-    sin_tab,
-    sqrt_tab,
-    square_tab,
-    tan_tab,
+    arcsin_tab,
 ):
     # Cheap to rerun on every change (just re-collects already-built tab
     # content into a dict) -- the expensive matplotlib work only happens
@@ -1632,49 +1609,17 @@ def _(
 def _(
     FUNCTIONS,
     LABEL_BY_KEY,
-    arcsin_candidate_value,
-    arcsin_point_achieved,
-    arcsin_point_true_derivs,
-    arcsin_table_values,
-    arcsin_x,
-    cube_candidate_value,
-    cube_point_achieved,
-    cube_point_true_derivs,
-    cube_table_values,
-    cube_x,
-    exp_candidate_value,
-    exp_point_achieved,
-    exp_point_true_derivs,
-    exp_table_values,
-    exp_x,
     json,
-    log_candidate_value,
-    log_point_achieved,
-    log_point_true_derivs,
-    log_table_values,
-    log_x,
     np,
-    sin_candidate_value,
-    sin_point_achieved,
-    sin_point_true_derivs,
-    sin_table_values,
-    sin_x,
-    sqrt_candidate_value,
-    sqrt_point_achieved,
-    sqrt_point_true_derivs,
-    sqrt_table_values,
-    sqrt_x,
-    square_candidate_value,
-    square_point_achieved,
-    square_point_true_derivs,
-    square_table_values,
-    square_x,
-    tan_candidate_value,
-    tan_point_achieved,
-    tan_point_true_derivs,
-    tan_table_values,
-    tan_x,
     utils,
+    square_x, square_candidate_value, square_point_achieved, square_point_true_derivs, square_table_values,
+    cube_x, cube_candidate_value, cube_point_achieved, cube_point_true_derivs, cube_table_values,
+    sqrt_x, sqrt_candidate_value, sqrt_point_achieved, sqrt_point_true_derivs, sqrt_table_values,
+    sin_x, sin_candidate_value, sin_point_achieved, sin_point_true_derivs, sin_table_values,
+    tan_x, tan_candidate_value, tan_point_achieved, tan_point_true_derivs, tan_table_values,
+    exp_x, exp_candidate_value, exp_point_achieved, exp_point_true_derivs, exp_table_values,
+    log_x, log_candidate_value, log_point_achieved, log_point_true_derivs, log_table_values,
+    arcsin_x, arcsin_candidate_value, arcsin_point_achieved, arcsin_point_true_derivs, arcsin_table_values,
 ):
     X_BY_KEY = {
         "square": square_x, "cube": cube_x, "sqrt": sqrt_x, "sin": sin_x,
@@ -1749,6 +1694,7 @@ def _(
         )
 
     utils.checker.save_npz(_answer, utils.checker.get_data_dir() / "answer.npz")
+
 
     return
 

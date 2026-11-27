@@ -1,2 +1,6 @@
 content:
   - "1. Deep Networks, Batchnorm and Residual Blocks"
+  - 2. Initialization
+  - 3. Dropout
+  - 4. Feature and Label Normalization
+  - 5. Variational Neurons

@@ -53,12 +53,13 @@ class TinyNeRF(nn.Module):
         over many steps the network sees the whole ray; in evaluation, the
         middle of each bin.
         """
+        device = next(self.parameters()).device
         step = (self.far - self.near) / self.n_samples
-        bin_starts = self.near + step * torch.arange(self.n_samples, dtype=torch.float32)
+        bin_starts = self.near + step * torch.arange(self.n_samples, dtype=torch.float32, device=device)
         if self.training:
-            offsets = torch.rand(n_rays, self.n_samples)
+            offsets = torch.rand(n_rays, self.n_samples, device=device)
         else:
-            offsets = torch.full((n_rays, self.n_samples), 0.5)
+            offsets = torch.full((n_rays, self.n_samples), 0.5, device=device)
         depths = bin_starts + offsets * step
         return depths, torch.full_like(depths, step)
 

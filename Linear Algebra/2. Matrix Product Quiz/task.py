@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.25.1"
+__generated_with = "0.24.0"
 app = marimo.App(width="full")
 
 
@@ -28,16 +28,19 @@ def _():
     CARDS = utils.cards.load_ordering_cards()
     get_selected, set_selected = utils.cards.init_selection_state(mo, CARDS)
 
+
     return CARDS, get_selected, mo, set_selected, utils
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
-    # Matrix Product Quiz
+    mo.md(
+        """
+        # Matrix Product Quiz
 
-    Select the correct statements.
-    """)
+        Select the correct statements.
+        """
+    )
     return
 
 
@@ -56,7 +59,7 @@ def _(CARDS, get_selected, mo, set_selected, utils):
 
 
 @app.cell(hide_code=True)
-def _(checkboxes, widget):
+def _(checkboxes, utils, widget):
     # Referencing the array in another cell keeps its callbacks registered.
     _controls = checkboxes
 

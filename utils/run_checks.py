@@ -3,14 +3,15 @@ timing each run and reporting pass/fail.
 
 Usage
 -----
-python3 utils/run_checks.py [path] [--timeout SECONDS]
+python3 utils/run_checks.py [path] [--timeout SECONDS] [--jobs N]
 
 `path` is a directory inside the course (or the course root itself);
 defaults to the course root. Every task directory found under it (any
 directory containing both task-info.yaml and tests/test_task.py) has its
 checker run in an isolated subprocess, in its own directory, with the
 course root on PYTHONPATH so `import utils` resolves the same way it
-does for a real run.
+does for a real run. The tasks are independent, so `--jobs` of them run at
+the same time (default: half the CPU cores; `--jobs 1` runs them one by one).
 
 tests/test_task.py never calls unittest.main() itself -- it only defines
 a TestCase and lets a runner discover it, so it's run here via
@@ -30,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import paths
@@ -103,6 +105,66 @@ def run_task_check(task_dir: Path, course_root: Path, timeout: float):
 
 STATUS_LABELS = {"pass": "PASS", "fail": "FAIL", "error": "ERROR", "timeout": "TIMEOUT"}
 
+# One check needs about 1.3 GB of memory at its peak (its notebook kernels
+# with torch loaded); too many at once get the kernels killed ("Kernel
+# died"). Hence at most one job per 2 GB of RAM, and at most half the cores.
+MEMORY_PER_JOB_BYTES = 2 * 1024 ** 3
+
+
+def default_jobs() -> int:
+    """Return how many checks can run at the same time on this machine."""
+    cores = os.cpu_count() or 1
+    try:
+        memory_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, ValueError, OSError):
+        # No sysconf (Windows): assume 2 GB per core.
+        memory_bytes = cores * MEMORY_PER_JOB_BYTES
+    return max(1, min(cores // 2, memory_bytes // MEMORY_PER_JOB_BYTES))
+
+
+DEFAULT_JOBS = default_jobs()
+
+
+def run_task_checks(task_dirs, course_root: Path, timeout: float,
+                    jobs: int = DEFAULT_JOBS):
+    """Run the checkers of `task_dirs`, `jobs` at a time.
+
+    Every check is already isolated in its own subprocess and its own task
+    directory (see run_task_check()), so the checks can run at the same
+    time. Each result is printed as soon as its check finishes.
+
+    Parameters
+    ----------
+    task_dirs : list of Path
+        Task directories, in the order of the returned rows.
+    course_root : Path
+        Course root, put on PYTHONPATH and used for the printed task names.
+    timeout : float
+        Per-task timeout in seconds, forwarded to run_task_check().
+    jobs : int
+        Number of checks that run at the same time; 1 runs them one by one.
+
+    Returns
+    -------
+    list of tuple
+        `(task_name, elapsed_seconds, status, detail)` per task, in the
+        order of `task_dirs`.
+    """
+    rows = {}
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        futures = {
+            pool.submit(run_task_check, task_dir, course_root, timeout): task_dir
+            for task_dir in task_dirs
+        }
+        for future in as_completed(futures):
+            task_dir = futures[future]
+            rel_name = task_dir.relative_to(course_root)
+            elapsed, status, detail = future.result()
+            rows[task_dir] = (str(rel_name), elapsed, status, detail)
+            print(f"{rel_name}: {elapsed:.2f}s [{STATUS_LABELS[status]}]"
+                  + (f" -- {detail}" if detail else ""), flush=True)
+    return [rows[task_dir] for task_dir in task_dirs]
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -116,6 +178,10 @@ def main():
         "--timeout", type=float, default=300.0,
         help="Per-task timeout in seconds (default: 300).",
     )
+    parser.add_argument(
+        "--jobs", type=int, default=DEFAULT_JOBS,
+        help=f"Checks that run at the same time (default: {DEFAULT_JOBS}).",
+    )
     args = parser.parse_args()
 
     course_root = paths.find_course_root(args.start)
@@ -126,13 +192,9 @@ def main():
         print(f"No checkable tasks found under {scope}")
         return
 
-    rows = []
-    for task_dir in task_dirs:
-        rel_name = task_dir.relative_to(course_root)
-        elapsed, status, detail = run_task_check(task_dir, course_root, args.timeout)
-        rows.append((str(rel_name), elapsed, status, detail))
-        print(f"{rel_name}: {elapsed:.2f}s [{STATUS_LABELS[status]}]"
-              + (f" -- {detail}" if detail else ""), flush=True)
+    start = time.monotonic()
+    rows = run_task_checks(task_dirs, course_root, args.timeout, args.jobs)
+    wall_time = time.monotonic() - start
 
     print()
     print("| Task | Time (s) | Result |")
@@ -145,6 +207,7 @@ def main():
             passed += 1
         print(f"| {name} | {elapsed:.2f} | {STATUS_LABELS[status]} |")
     print(f"| **Total** | **{total:.2f}** | {passed}/{len(rows)} passed |")
+    print(f"\nWall time: {wall_time:.2f}s with {args.jobs} job(s)")
 
 
 if __name__ == "__main__":

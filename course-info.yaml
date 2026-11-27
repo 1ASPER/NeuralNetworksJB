@@ -37,23 +37,36 @@ additional_files:
   - name: source/.code/__init__.py
   - name: source/.code/src/__init__.py
   - name: source/.code/src/datasets/__init__.py
+  - name: source/.code/src/datasets/house_prices.py
   - name: source/.code/src/datasets/mnist_augmented.py
+  - name: source/.code/src/datasets/mnist_canvas.py
   - name: source/.code/src/datasets/mnist_simple.py
   - name: source/.code/src/datasets/movie_recommendation.py
   - name: source/.code/src/datasets/nerf.py
   - name: source/.code/src/datasets/wikicorpora.py
+  - name: source/.code/src/datasets/wikitext.py
   - name: source/.code/src/models/__init__.py
   - name: source/.code/src/models/convolutional/__init__.py
+  - name: source/.code/src/models/convolutional/detection.py
+  - name: source/.code/src/models/convolutional/segmentation.py
   - name: source/.code/src/models/convolutional/sequential.py
   - name: source/.code/src/models/feedforward/__init__.py
   - name: source/.code/src/models/feedforward/adversarial.py
   - name: source/.code/src/models/feedforward/autoencoder.py
   - name: source/.code/src/models/feedforward/deep_batchnorm_net.py
+  - name: source/.code/src/models/feedforward/dropout.py
   - name: source/.code/src/models/feedforward/fully_connected.py
+  - name: source/.code/src/models/feedforward/initialization.py
   - name: source/.code/src/models/feedforward/nerf.py
   - name: source/.code/src/models/feedforward/recommendation.py
+  - name: source/.code/src/models/feedforward/regression.py
   - name: source/.code/src/models/feedforward/simple_fcnn.py
+  - name: source/.code/src/models/feedforward/variational.py
   - name: source/.code/src/models/feedforward/word2vec.py
+  - name: source/.code/src/models/transformer/__init__.py
+  - name: source/.code/src/models/transformer/attention.py
+  - name: source/.code/src/models/transformer/gpt.py
+  - name: source/.code/src/models/transformer/vit.py
   - name: source/.code/src/optimizers.py
   - name: source/.code/src/train_loop.py
   - name: source/.code/src/utils/__init__.py

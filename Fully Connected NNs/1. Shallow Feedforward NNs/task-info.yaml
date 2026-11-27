@@ -8,6 +8,9 @@ files:
     visible: true
     is_binary: true
     learner_created: false
+  - name: unittests.py
+    visible: false
+    learner_created: false
   - name: tests/test_task.py
     visible: false
     is_binary: true

@@ -31,6 +31,9 @@ def _model_device(model):
 
 
 def _move_to_device(value, device):
+    if torch.is_tensor(value) and value.dtype == torch.float64 and device.type == 'mps':
+        # The Apple GPU has no float64.
+        return value.to(device=device, dtype=torch.float32)
     if hasattr(value, 'to'):
         return value.to(device)
     if isinstance(value, dict):
@@ -236,6 +239,195 @@ def _finalize_metric_totals(metric_totals):
     }
 
 
+def _move_model_to_device(model, device):
+    """Move ``model`` to ``device``; return ``(original_device, device)``."""
+    original_device = _model_device(model)
+    if device is None:
+        return original_device, original_device
+    device = torch.device(device)
+    model.to(device)
+    return original_device, device
+
+
+def _check_losses(loss):
+    """Return ``loss`` as a non-empty dict of name -> loss function."""
+    losses = _normalize_named_functions(loss, 'loss')
+    if not isinstance(losses, dict):
+        raise TypeError('loss must be a function or a dictionary mapping loss names to loss functions')
+    if not losses:
+        raise ValueError('loss must contain at least one loss function')
+    return losses
+
+
+def _check_metrics(metrics):
+    """Return ``metrics`` as a dict of name -> metric function."""
+    metrics = {} if metrics is None else metrics
+    if not isinstance(metrics, dict):
+        raise TypeError('metrics must be a dictionary mapping metric names to metric functions')
+    return metrics
+
+
+def _build_history(losses, metrics):
+    """Return the empty per-epoch history of every loss and metric."""
+    return {
+        'train_loss': {loss_name: [] for loss_name in losses},
+        'valid_loss': {loss_name: [] for loss_name in losses},
+        'train_metrics': {metric_name: [] for metric_name in metrics},
+        'valid_metrics': {metric_name: [] for metric_name in metrics},
+    }
+
+
+def _prepare_batch(batch, device):
+    """Wrap a dataloader batch into the batch dict and move it to ``device``."""
+    return _move_to_device({'data': batch}, device)
+
+
+def _finalize_epoch(train_losses, valid_losses, train_metrics, valid_metrics,
+                    has_validation):
+    """Turn the epoch totals into mean values, keyed like the history."""
+    epoch_results = {
+        'train_loss': _finalize_loss_totals(train_losses),
+        'valid_loss': _finalize_loss_totals(valid_losses),
+        'train_metrics': _finalize_metric_totals(train_metrics),
+        'valid_metrics': _finalize_metric_totals(valid_metrics),
+    }
+    if not has_validation:
+        epoch_results['valid_loss'] = dict.fromkeys(valid_losses)
+        epoch_results['valid_metrics'] = dict.fromkeys(valid_metrics)
+    return epoch_results
+
+
+def _append_to_history(history, epoch_results):
+    for stage, values in epoch_results.items():
+        for name, value in values.items():
+            history[stage][name].append(value)
+
+
+def _step_scheduler(scheduler, valid_losses):
+    """Step ``scheduler`` once per epoch; plateau schedulers get the validation loss."""
+    if scheduler is None:
+        return
+    if (isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+            or getattr(scheduler, 'steps_on_validation_loss', False)):
+        scheduler.step(sum(valid_losses.values()))
+    else:
+        scheduler.step()
+
+
+def _log_training_params(mlflow_logger, run_name, model, loss, optimizer,
+                         scheduler, n_epochs, train_dl, valid_dl):
+    if mlflow_logger is None:
+        return
+    mlflow_logger.log_params(mlflow_utils.collect_training_params(
+        run_name,
+        model,
+        loss,
+        optimizer,
+        scheduler,
+        getattr(train_dl, 'batch_size', None),
+        n_epochs,
+        train_dl,
+        valid_dl,
+    ))
+
+
+def _log_batch_losses(mlflow_logger, loss_values, step):
+    if mlflow_logger is None:
+        return
+    for loss_name, loss_value in loss_values.items():
+        mlflow_logger.log_metric(
+            _loss_metric_name('batch/train', loss_name),
+            loss_value,
+            step=step,
+        )
+
+
+def _log_epoch_results(mlflow_logger, epoch_results, epoch, has_validation):
+    if mlflow_logger is None:
+        return
+    for loss_name in epoch_results['train_loss']:
+        mlflow_logger.log_metric(
+            _loss_metric_name('epoch/train', loss_name),
+            epoch_results['train_loss'][loss_name],
+            step=epoch,
+        )
+        if has_validation:
+            mlflow_logger.log_metric(
+                _loss_metric_name('epoch/valid', loss_name),
+                epoch_results['valid_loss'][loss_name],
+                step=epoch,
+            )
+
+    for metric_name in epoch_results['train_metrics']:
+        mlflow_logger.log_metric(
+            f'epoch/train_{metric_name}',
+            epoch_results['train_metrics'][metric_name],
+            step=epoch,
+        )
+        if has_validation:
+            mlflow_logger.log_metric(
+                f'epoch/valid_{metric_name}',
+                epoch_results['valid_metrics'][metric_name],
+                step=epoch,
+            )
+
+
+def _plot_history(mlflow_logger, history, run_name):
+    if mlflow_logger is not None:
+        mlflow_utils.plot_training_curves(mlflow_logger, history, run_name)
+
+
+class _ProgressBars:
+    """Epoch and batch progress bars, each with a loss summary under it.
+
+    The summaries stay visible after the bars close.
+    """
+
+    def __init__(self, n_epochs, n_batches):
+        self.n_epochs = n_epochs
+        self.n_batches = n_batches
+        self.epoch_message = None
+        self.batch_message = None
+
+    def __enter__(self):
+        self.epoch_bar = tqdm(total=self.n_epochs, desc='epochs', position=0)
+        _keep_bar_message_on_close(self.epoch_bar, lambda: self.epoch_message)
+        self.batch_bar = tqdm(total=self.n_batches, desc='batches', position=1, leave=True)
+        _keep_bar_message_on_close(self.batch_bar, lambda: self.batch_message)
+        return self
+
+    def __exit__(self, *exception_info):
+        self.batch_bar.close()
+        self.epoch_bar.close()
+        if self.epoch_message is not None:
+            _set_bar_message(self.epoch_bar, self.epoch_message)
+        if self.batch_message is not None:
+            _set_bar_message(self.batch_bar, self.batch_message)
+        return False
+
+    def start_epoch(self, epoch):
+        epoch_width = len(str(self.n_epochs))
+        self.batch_bar.reset(total=self.n_batches)
+        self.batch_bar.set_description_str(f'epoch {epoch + 1:>{epoch_width}}/{self.n_epochs}')
+        self.batch_message = _batch_status(None, None)
+        _set_bar_message(self.batch_bar, self.batch_message)
+
+    def show_batch(self, loss_values, loss_emas):
+        self.batch_bar.update(1)
+        self.batch_message = _batch_status(loss_values, loss_emas)
+        _set_bar_message(self.batch_bar, self.batch_message)
+
+    def show_epoch(self, epoch_results):
+        self.epoch_bar.update(1)
+        self.epoch_message = _epoch_status(
+            epoch_results['valid_loss'],
+            epoch_results['train_loss'],
+            epoch_results['valid_metrics'],
+            epoch_results['train_metrics'],
+        )
+        _set_bar_message(self.epoch_bar, self.epoch_message)
+
+
 def train_model(
     model,
     n_epochs,
@@ -249,219 +441,103 @@ def train_model(
     run_name='model',
     device=None,
 ):
-    if device is not None:
-        device = torch.device(device)
-        model.to(device)
-    else:
-        device = _model_device(model)
+    # The model trains on `device` and returns to where it was, so that the
+    # code after the training keeps working with tensors on that device.
+    original_device, device = _move_model_to_device(model, device)
+    losses = _check_losses(loss)
+    metrics = _check_metrics(metrics)
+    history = _build_history(losses, metrics)
+    has_validation = valid_dl is not None
+    _log_training_params(mlflow_logger, run_name, model, loss, optimizer,
+                         scheduler, n_epochs, train_dl, valid_dl)
 
-    losses = _normalize_named_functions(loss, 'loss')
-    if not isinstance(losses, dict):
-        raise TypeError('loss must be a function or a dictionary mapping loss names to loss functions')
-    if not losses:
-        raise ValueError('loss must contain at least one loss function')
-    train_loss_history = {loss_name: [] for loss_name in losses}
-    valid_loss_history = {loss_name: [] for loss_name in losses}
-    metrics = {} if metrics is None else metrics
-    if not isinstance(metrics, dict):
-        raise TypeError('metrics must be a dictionary mapping metric names to metric functions')
-    train_metrics_history = {metric_name: [] for metric_name in metrics}
-    valid_metrics_history = {metric_name: [] for metric_name in metrics}
-    batch_bar_total = len(train_dl)
+    with _ProgressBars(n_epochs, len(train_dl)) as progress:
+        for epoch in range(n_epochs):
+            train_losses = _empty_loss_totals(losses)
+            valid_losses = _empty_loss_totals(losses)
+            loss_emas = {loss_name: None for loss_name in losses}
+            train_metrics = _empty_metric_totals(metrics)
+            valid_metrics = _empty_metric_totals(metrics)
+            progress.start_epoch(epoch)
 
-    if mlflow_logger is not None:
-        mlflow_logger.log_params(mlflow_utils.collect_training_params(
-            run_name,
-            model,
-            loss,
-            optimizer,
-            scheduler,
-            getattr(train_dl, 'batch_size', None),
-            n_epochs,
-            train_dl,
-            valid_dl,
-        ))
+            for batch_index, batch in enumerate(train_dl):
+                batch = _prepare_batch(batch, device)
 
-    epoch_width = len(str(n_epochs))
-    final_epoch_message = None
-    final_batch_message = None
+                ## YOUR CODE HERE
+                # Implement one training step:
+                # switch to training mode
+                # reset gradients
+                # run the model
+                # compute named losses
+                # store named losses and their sum
+                # backpropagate through the summed loss
+                # update weights,
+                # switch the model to evaluation mode
+                # update metric numerators/denominators.
+                loss_values = {
+                    loss_name: torch.tensor(0.0)
+                    for loss_name in losses
+                }
+                # -- start --
+                model.train()
+                optimizer.zero_grad()
+                model(batch)
 
-    with tqdm(total=n_epochs, desc='epochs', position=0) as epoch_bar:
-        _keep_bar_message_on_close(epoch_bar, lambda: final_epoch_message)
-        with tqdm(total=batch_bar_total, desc='batches', position=1, leave=True) as batch_bar:
-            _keep_bar_message_on_close(batch_bar, lambda: final_batch_message)
-            for epoch in range(n_epochs):
-                train_losses = _empty_loss_totals(losses)
-                valid_losses = _empty_loss_totals(losses)
-                loss_emas = {loss_name: None for loss_name in losses}
+                loss_values = _compute_losses(losses, batch)
+                loss_value = _sum_losses(loss_values)
+                batch['losses'] = loss_values
+                batch['loss'] = loss_value
+                loss_value.backward()
 
-                train_metrics = _empty_metric_totals(metrics)
-                valid_metrics = _empty_metric_totals(metrics)
+                optimizer.step()
+                model.eval()
 
-                batch_bar.reset(total=batch_bar_total)
-                batch_bar.set_description_str(f'epoch {epoch + 1:>{epoch_width}}/{n_epochs}')
-                final_batch_message = _batch_status(None, None)
-                _set_bar_message(batch_bar, final_batch_message)
+                _update_metric_totals(train_metrics, metrics, batch)
+                # -- end --
 
-                for batch_index, batch in enumerate(train_dl):
-                    batch = {'data': batch}
-                    batch = _move_to_device(batch, device)
+                _update_loss_totals(train_losses, loss_values)
+                _update_loss_emas(loss_emas, loss_values)
+                progress.show_batch(loss_values, loss_emas)
+                _log_batch_losses(mlflow_logger, loss_values,
+                                  step=epoch * len(train_dl) + batch_index)
+
+            with torch.no_grad():
+                # valid_dl=None trains without a validation set.
+                for valid_batch in (valid_dl if has_validation else []):
+                    valid_batch = _prepare_batch(valid_batch, device)
 
                     ## YOUR CODE HERE
-                    # Implement one training step:
-                    # switch to training mode
-                    # reset gradients
-                    # run the model
-                    # compute named losses
-                    # store named losses and their sum
-                    # backpropagate through the summed loss
-                    # update weights,
+                    # Implement one validation step:
                     # switch the model to evaluation mode
-                    # update metric numerators/denominators.
-                    loss_values = {
+                    # run the model without gradients
+                    # compute and store named validation losses
+                    # and update metric numerators/denominators. 
+                    # Do not call backward() or step().
+                    valid_loss_values = {
                         loss_name: torch.tensor(0.0)
                         for loss_name in losses
                     }
                     # -- start --
-                    model.train()
-                    optimizer.zero_grad()
-                    model(batch)
-
-                    loss_values = _compute_losses(losses, batch)
-                    loss_value = _sum_losses(loss_values)
-                    batch['losses'] = loss_values
-                    batch['loss'] = loss_value
-                    loss_value.backward()
-
-                    optimizer.step()
                     model.eval()
+                    model(valid_batch)
 
-                    _update_metric_totals(train_metrics, metrics, batch)
+                    valid_loss_values = _compute_losses(losses, valid_batch)
+                    valid_batch['losses'] = valid_loss_values
+                    valid_batch['loss'] = _sum_losses(valid_loss_values)
+
+                    _update_metric_totals(valid_metrics, metrics, valid_batch)
                     # -- end --
 
-                    _update_loss_totals(train_losses, loss_values)
-                    _update_loss_emas(loss_emas, loss_values)
+                    _update_loss_totals(valid_losses, valid_loss_values)
 
-                    batch_bar.update(1)
+            epoch_results = _finalize_epoch(train_losses, valid_losses,
+                                            train_metrics, valid_metrics,
+                                            has_validation)
+            _append_to_history(history, epoch_results)
+            _log_epoch_results(mlflow_logger, epoch_results, epoch, has_validation)
+            _step_scheduler(scheduler, epoch_results['valid_loss'])
+            progress.show_epoch(epoch_results)
 
-                    final_batch_message = _batch_status(loss_values, loss_emas)
-                    _set_bar_message(batch_bar, final_batch_message)
-
-                    if mlflow_logger is not None:
-                        global_step = epoch * len(train_dl) + batch_index
-                        for loss_name, loss_value in loss_values.items():
-                            mlflow_logger.log_metric(
-                                _loss_metric_name('batch/train', loss_name),
-                                loss_value,
-                                step=global_step,
-                            )
-
-                with torch.no_grad():
-                    # valid_dl=None trains without a validation set.
-                    for valid_batch in (valid_dl if valid_dl is not None else []):
-                        valid_batch = {'data': valid_batch}
-                        valid_batch = _move_to_device(valid_batch, device)
-
-                        ## YOUR CODE HERE
-                        # Implement one validation step:
-                        # switch the model to evaluation mode
-                        # run the model without gradients
-                        # compute and store named validation losses
-                        # and update metric numerators/denominators. 
-                        # Do not call backward() or step().
-                        valid_loss_values = {
-                            loss_name: torch.tensor(0.0)
-                            for loss_name in losses
-                        }
-                        # -- start --
-                        model.eval()
-                        model(valid_batch)
-
-                        valid_loss_values = _compute_losses(losses, valid_batch)
-                        valid_batch['losses'] = valid_loss_values
-                        valid_batch['loss'] = _sum_losses(valid_loss_values)
-
-                        _update_metric_totals(valid_metrics, metrics, valid_batch)
-                        # -- end --
-
-                        _update_loss_totals(valid_losses, valid_loss_values)
-
-                finalized_train_losses = _finalize_loss_totals(train_losses)
-                finalized_valid_losses = _finalize_loss_totals(valid_losses)
-                if valid_dl is None:
-                    finalized_valid_losses = {loss_name: None for loss_name in losses}
-
-                for loss_name in losses:
-                    train_loss_history[loss_name].append(finalized_train_losses[loss_name])
-                    valid_loss_history[loss_name].append(finalized_valid_losses[loss_name])
-
-                finalized_train_metrics = _finalize_metric_totals(train_metrics)
-                finalized_valid_metrics = _finalize_metric_totals(valid_metrics)
-                if valid_dl is None:
-                    finalized_valid_metrics = {metric_name: None for metric_name in metrics}
-                for metric_name in metrics:
-                    train_metrics_history[metric_name].append(finalized_train_metrics[metric_name])
-                    valid_metrics_history[metric_name].append(finalized_valid_metrics[metric_name])
-
-                if mlflow_logger is not None:
-                    for loss_name in losses:
-                        mlflow_logger.log_metric(
-                            _loss_metric_name('epoch/train', loss_name),
-                            finalized_train_losses[loss_name],
-                            step=epoch,
-                        )
-                        if valid_dl is not None:
-                            mlflow_logger.log_metric(
-                                _loss_metric_name('epoch/valid', loss_name),
-                                finalized_valid_losses[loss_name],
-                                step=epoch,
-                            )
-
-                    for metric_name in metrics:
-                        mlflow_logger.log_metric(
-                            f'epoch/train_{metric_name}',
-                            finalized_train_metrics[metric_name],
-                            step=epoch,
-                        )
-                        if valid_dl is not None:
-                            mlflow_logger.log_metric(
-                                f'epoch/valid_{metric_name}',
-                                finalized_valid_metrics[metric_name],
-                                step=epoch,
-                            )
-
-                if scheduler is not None:
-                    if (isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
-                            or getattr(scheduler, 'steps_on_validation_loss', False)):
-                        scheduler.step(sum(finalized_valid_losses.values()))
-                    else:
-                        scheduler.step()
-
-                epoch_bar.update(1)
-                final_epoch_message = _epoch_status(
-                    finalized_valid_losses,
-                    finalized_train_losses,
-                    finalized_valid_metrics,
-                    finalized_train_metrics,
-                )
-                _set_bar_message(
-                    epoch_bar,
-                    final_epoch_message,
-                )
-
-    if final_epoch_message is not None:
-        _set_bar_message(epoch_bar, final_epoch_message)
-    if final_batch_message is not None:
-        _set_bar_message(batch_bar, final_batch_message)
-
-    history = {
-        'train_loss': train_loss_history,
-        'valid_loss': valid_loss_history,
-        'train_metrics': train_metrics_history,
-        'valid_metrics': valid_metrics_history,
-    }
-
-    if mlflow_logger is not None:
-        mlflow_utils.plot_training_curves(mlflow_logger, history, run_name)
-
+    model.to(original_device)
+    _plot_history(mlflow_logger, history, run_name)
     return history

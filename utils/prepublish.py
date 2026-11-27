@@ -2,7 +2,7 @@
 
 Usage
 -----
-python3 utils/prepublish.py [path] [--timeout SECONDS]
+python3 utils/prepublish.py [path] [--timeout SECONDS] [--jobs N]
 
 `path` is a directory inside the course (or the course root itself);
 defaults to the course root.
@@ -19,10 +19,14 @@ Courses/.agents/rules/verification-workflow.md):
 
 Stops after stage 2 if any task doesn't pass there -- there is nothing
 useful to clean up or re-check if the solved copy itself is broken.
+
+The checks of stages 2 and 4 run `--jobs` tasks at the same time (see
+run_checks.run_task_checks()).
 """
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 import cleanup
@@ -31,7 +35,7 @@ import paths
 import run_checks
 
 
-def _run_all_checks(root: Path, timeout: float):
+def _run_all_checks(root: Path, timeout: float, jobs: int):
     """Run every task's checker under `root`, printing each result.
 
     Parameters
@@ -40,6 +44,8 @@ def _run_all_checks(root: Path, timeout: float):
         Course root (or subdirectory) to scope the run to.
     timeout : float
         Per-task timeout in seconds, forwarded to run_checks.run_task_check().
+    jobs : int
+        Number of checks that run at the same time.
 
     Returns
     -------
@@ -48,20 +54,15 @@ def _run_all_checks(root: Path, timeout: float):
         same shape run_checks.py itself prints.
     """
     task_dirs = sorted(run_checks.find_task_dirs(root))
-    rows = []
-    for task_dir in task_dirs:
-        rel_name = task_dir.relative_to(root)
-        elapsed, status, detail = run_checks.run_task_check(task_dir, root, timeout)
-        rows.append((str(rel_name), elapsed, status, detail))
-        print(
-            f"{rel_name}: {elapsed:.2f}s [{run_checks.STATUS_LABELS[status]}]"
-            + (f" -- {detail}" if detail else ""),
-            flush=True,
-        )
+    start = time.monotonic()
+    rows = run_checks.run_task_checks(task_dirs, root, timeout, jobs)
+    print(f"Wall time: {time.monotonic() - start:.2f}s with {jobs} job(s)",
+          flush=True)
     return rows
 
 
-def prepublish(start=None, timeout: float = 300.0) -> bool:
+def prepublish(start=None, timeout: float = 300.0,
+               jobs: int = run_checks.DEFAULT_JOBS) -> bool:
     """Run compile -> check(expect pass) -> cleanup -> check(expect not-pass).
 
     Parameters
@@ -70,6 +71,8 @@ def prepublish(start=None, timeout: float = 300.0) -> bool:
         Path inside the course. Defaults to the current working directory.
     timeout : float
         Per-task timeout in seconds, forwarded to each checker run.
+    jobs : int
+        Number of checks that run at the same time; 1 runs them one by one.
 
     Returns
     -------
@@ -85,7 +88,7 @@ def prepublish(start=None, timeout: float = 300.0) -> bool:
     compile.compile_course(start)
 
     print("\n== Stage 2/4: run_checks (expect every task to PASS) ==")
-    solved_rows = _run_all_checks(root, timeout)
+    solved_rows = _run_all_checks(root, timeout, jobs)
     still_broken = [name for name, _, status, _ in solved_rows if status != "pass"]
     if still_broken:
         print(
@@ -98,7 +101,7 @@ def prepublish(start=None, timeout: float = 300.0) -> bool:
     cleanup.cleanup_course(start)
 
     print("\n== Stage 4/4: run_checks (expect no task to PASS) ==")
-    stripped_rows = _run_all_checks(root, timeout)
+    stripped_rows = _run_all_checks(root, timeout, jobs)
     leaked = [name for name, _, status, _ in stripped_rows if status == "pass"]
     if leaked:
         print(
@@ -124,9 +127,13 @@ def main():
         "--timeout", type=float, default=300.0,
         help="Per-task timeout in seconds (default: 300).",
     )
+    parser.add_argument(
+        "--jobs", type=int, default=run_checks.DEFAULT_JOBS,
+        help=f"Checks that run at the same time (default: {run_checks.DEFAULT_JOBS}).",
+    )
     args = parser.parse_args()
 
-    ok = prepublish(start=args.start, timeout=args.timeout)
+    ok = prepublish(start=args.start, timeout=args.timeout, jobs=args.jobs)
     sys.exit(0 if ok else 1)
 
 
